@@ -1,5 +1,6 @@
 #include "mbed.h"
 #include "math.h"
+#include "LCD_DISCO_F429ZI.h"
 
 // setup the SPI
 // PC1 - CS (chip select for gyro)
@@ -7,10 +8,11 @@
 // PF8 - MISO (Master in Slave out)
 // PF9 - MOSI (Master out Slave in)
 
+LCD_DISCO_F429ZI lcd;
 SPI spi(PF_9, PF_8, PF_7); // mosi, miso, sclk
 DigitalOut gyro_cs(PC_1);  // chip select
-int window_size =10;
-int pit_stop =0;
+int window_size =3;
+float walking_time =0;
 int i = 0;
 bool flag = false;
 const int sample = 10;
@@ -25,6 +27,10 @@ float noisy_x[100];
 float noisy_y[100];
 float noisy_z[100];
 int k=0;
+float noisy_mag[100]={0};
+uint8_t text[30];
+uint8_t text1[30];
+uint8_t text2[30];
 
 
 void display()
@@ -52,25 +58,28 @@ int window_sum(int start){
     int sum=0;
     for(int i=start; i<start+window_size; i++)
     {
-      sum+=abs(noisy_x[i]);
+      sum+=abs(noisy_mag[i]);
     }
     return sum;
   }
+
 void find_pitstop(){
-  bool f= false;
-  for (int i = 0;i<100;i+=10){
+  
+  float counter =0;
+  for (int i =0;i<100;i++){
+    noisy_mag[i] = sqrt(noisy_x[i]*noisy_x[i]+noisy_y[i]*noisy_y[i]+noisy_z[i]*noisy_z[i]);
+  }
+
+  for (int i = 0;i<98;i+=3){
     int sum1 = window_sum(i);
-    float avg= sum1/100;
-    if(avg<5)
+    float avg= sum1/3;
+    if(avg<50)
     {
-      f=true;
-      pit_stop=i;
+      counter+=3;
     }
-  }
-  if(f==false)
-  {
-    pit_stop=100;
-  }
+    walking_time = 5 - counter*0.05;
+
+}
 }
 void get_sample(){
     for (int j=0;j<sample;j++){
@@ -138,12 +147,17 @@ void config_gyro(){
 }
 int main()
 {
+  BSP_LCD_SetFont(&Font20);
+  lcd.Clear(LCD_COLOR_BLUE);
+  lcd.SetBackColor(LCD_COLOR_BLUE);
+  lcd.SetTextColor(LCD_COLOR_WHITE);
   config_gyro();
   float avg_dps_x[sample];
   float avg_dps_y[sample];
   float avg_dps_z[sample];
   while (1){
     printf("New batch\n");
+    lcd.DisplayStringAt(0, LINE(7), (uint8_t *) "  Sampling...", CENTER_MODE);
     wait_us(1000000);
     
     for (int i=0;i<sample;i++){ // 5 seconds to run
@@ -155,8 +169,10 @@ int main()
       dps_y = 0;
       dps_z = 0;
     }
+    lcd.DisplayStringAt(0, LINE(7), (uint8_t *) "Calculating", CENTER_MODE);
+    wait_us(1000000);
     k=0;
-    display();
+    //display();
     find_pitstop();
   
     for (int j=0;j<sample;j++){
@@ -172,7 +188,14 @@ int main()
       s=0.00;  //This is when there is no movement, so it becomes 0/0 
     }
     //float time=((pit_stop*0.5)/10);
-    float linear_velocity = s/((pit_stop*0.5)/10);
+    
+    float linear_velocity = s/(walking_time);
+    sprintf((char*)text, "Distance = %.2f", s);
+    lcd.DisplayStringAt(0, LINE(9), (uint8_t *)&text, CENTER_MODE);
+    sprintf((char*)text2, "Walk Time = %.2f", walking_time);
+    lcd.DisplayStringAt(0, LINE(11), (uint8_t *)&text2, CENTER_MODE);
+    sprintf((char*)text1, "Speed = %.2f", linear_velocity);
+    lcd.DisplayStringAt(0, LINE(13), (uint8_t *)&text1, CENTER_MODE);
     printf("distance  = %.2f\n", s);
     //printf("Walked for = %.2f\n", time);
     printf("velocity = %.2f\n", linear_velocity);
