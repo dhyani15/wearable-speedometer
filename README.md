@@ -7,8 +7,8 @@ I have created an embedded application on STM32 Discovery microcontroller to dev
 I modeled each leg as one single segment, and the two legs are assumed to
 be of the same length; thus, while walking when the heel-strikes, the two legs and the distance between the feet formed an isosceles triangle.
 The angle between the leg segments was calculated by integrating the angular velocity measurement from the gyroscope attached to the shank, and then the distance between two feet (step length, one half of stride length) was calculated using the properties of the arc length that subtends an angle.
-The figure below illustrates the ideas involved in finding the stride length.
-![Algorithm](https://github.com/dhyani15/wearable-speedometer/blob/main/assets/illustration.png)
+The figure below illustrates the ideas involved in finding the stride length.<br/><br/>
+![Algorithm](https://github.com/dhyani15/wearable-speedometer/blob/main/assets/illustration.png)<br/>
 ![Equations](https://github.com/dhyani15/wearable-speedometer/blob/main/assets/equations.png)
 ## Setup
 Setup [PlatformIO](https://platformio.org/) in your Visual Studio Code IDE and connect the [STM board](https://www.st.com/en/evaluation-tools/32f429idiscovery.html) to your computer. Download the repository in your local project folder and compile it to the microcontroller. Once you have compiled it, the lcd display on the board will start highlighting the output. Wear the device near the ankle; start walking and the device will highlight the distance walked every 20 seconds.
